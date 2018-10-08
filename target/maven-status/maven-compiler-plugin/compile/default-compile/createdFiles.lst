@@ -1,0 +1,17 @@
+com/emergent/socialmedia/photosharing/repositories/CommentRepository.class
+com/emergent/socialmedia/photosharing/service/StorageServiceImpl.class
+com/emergent/socialmedia/photosharing/domain/Likes.class
+com/emergent/socialmedia/photosharing/repositories/MediaRepository.class
+com/emergent/socialmedia/photosharing/domain/FileStorageProperties.class
+com/emergent/socialmedia/photosharing/service/exceptions/MyFileNotFoundException.class
+com/emergent/socialmedia/photosharing/service/MediaService.class
+com/emergent/socialmedia/photosharing/PhotosharingApplication.class
+com/emergent/socialmedia/photosharing/repositories/LikeRepository.class
+com/emergent/socialmedia/photosharing/repositories/UserRepository.class
+com/emergent/socialmedia/photosharing/service/StorageService.class
+com/emergent/socialmedia/photosharing/service/exceptions/FileStorageException.class
+com/emergent/socialmedia/photosharing/resources/MediaResource.class
+com/emergent/socialmedia/photosharing/domain/User.class
+com/emergent/socialmedia/photosharing/service/MediaServiceImpl.class
+com/emergent/socialmedia/photosharing/domain/Comments.class
+com/emergent/socialmedia/photosharing/domain/Media.class
