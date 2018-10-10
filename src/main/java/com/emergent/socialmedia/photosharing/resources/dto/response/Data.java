@@ -7,7 +7,7 @@ import java.util.List;
 
 public class Data {
     private List<Media> children = new ArrayList<>();
-    private Integer after = -1;
+    private Long after = -1L;
 
     public List<Media> getChildren() {
         return children;
@@ -17,11 +17,11 @@ public class Data {
         this.children = children;
     }
 
-    public Integer getAfter() {
+    public Long getAfter() {
         return after;
     }
 
-    public void setAfter(Integer after) {
+    public void setAfter(Long after) {
         this.after = after;
     }
 }

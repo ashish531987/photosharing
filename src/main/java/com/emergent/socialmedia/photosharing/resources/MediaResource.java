@@ -55,9 +55,9 @@ public class MediaResource {
 
     @GetMapping(path=REST_GET_FEED_ENDPOINT,
                 produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<Object> getPhotoFeedWithAfterAndLimit(@RequestParam(value = "after", required = false) Integer after,
+    public ResponseEntity<Object> getPhotoFeedWithAfterAndLimit(@RequestParam(value = "after", required = false) Long after,
                                                @RequestParam(value = "limit", required = false) Integer limit){
-        if(after == null) after = 0;
+        if(after == null) after = 0L;
 
         AbstractResponseDTO feedResponseDTO = new FeedResponseDTO();
         List<Media> resultList = new ArrayList<>();
@@ -70,7 +70,7 @@ public class MediaResource {
         Data data = new Data();
         if(!resultList.isEmpty()) {
             data.setChildren(resultList);
-            data.setAfter(after+1);
+            data.setAfter(resultList.get(resultList.size()-1).getId());
         }
         feedResponseDTO.setData(data);
         return ResponseEntity.ok(feedResponseDTO);

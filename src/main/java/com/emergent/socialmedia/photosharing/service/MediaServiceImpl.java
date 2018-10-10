@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -70,9 +71,13 @@ public class MediaServiceImpl implements MediaService {
     }
 
     @Override
-    public List<Media> getAllMediaOrderByCreatedAtDesc(Integer after, Integer limit) {
-        Pageable pageable = PageRequest.of(after, limit);
-        return mediaRepository.findAllByOrderByCreatedAtDesc(pageable); // TODO filter own data
+    public List<Media> getAllMediaOrderByCreatedAtDesc(Long after, Integer limit) {
+        Date date = new Date();
+        Optional<Media> optionalMedia = mediaRepository.findById(after);
+        if(optionalMedia.isPresent()) date = optionalMedia.get().getCreatedAt();
+
+        Pageable pageable = PageRequest.of(0, limit, new Sort(Sort.Direction.DESC, "id"));
+        return mediaRepository.findAllByCreatedAtBefore(date, pageable); // TODO filter own data
     }
 
     @Override

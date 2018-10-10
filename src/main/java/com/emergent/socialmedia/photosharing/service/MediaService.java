@@ -11,7 +11,7 @@ public interface MediaService {
 
     Resource getMedia(String mediaId);
 
-    List<Media> getAllMediaOrderByCreatedAtDesc(Integer after, Integer limit);
+    List<Media> getAllMediaOrderByCreatedAtDesc(Long after, Integer limit);
 
     List<Media> getAllMediaOrderByCreatedAtDesc();
 

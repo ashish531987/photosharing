@@ -33,7 +33,6 @@ public class PhotosharingApplication {
 				User2 - Photo2
 					{likes}/	\{comments}
 						User3	User2
-		 */
 		User user1 = new User();
 		user1.setEmail("ashish@emergent.com");
 		user1.setFullName("Ashish Mahamuni");
@@ -51,26 +50,6 @@ public class PhotosharingApplication {
 		userRepository.save(user1);
 		userRepository.save(user2);
 		userRepository.save(user3);
-/*
-		Media photo1 = new Media();
-		photo1.setLocation("/location");
-		photo1.setUser(user1);
-		photo1.setLikesCount(1);
-		photo1.setCommentsCount(1);
-
-		Comments comment1 = new Comments();
-		comment1.setUploadedMedia(photo1);
-		comment1.setUser(user3);
-		comment1.setComment("#Wow Comments!!");
-
-		commentRepository.save(comment1);
-
-
-		Media photo = photoRepository.findById(photo1.getId()).get();
-		Likes like1 = new Likes();
-		like1.setUser(user2);
-		photo.getLike().add(like1);
-		photoRepository.save(photo);
-*/
+		 */
 	}
 }
