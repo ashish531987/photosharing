@@ -1,5 +1,9 @@
 package com.emergent.socialmedia.photosharing.resources;
 
+import com.emergent.socialmedia.photosharing.domain.Media;
+import com.emergent.socialmedia.photosharing.resources.dto.response.AbstractResponseDTO;
+import com.emergent.socialmedia.photosharing.resources.dto.response.Data;
+import com.emergent.socialmedia.photosharing.resources.dto.response.FeedResponseDTO;
 import com.emergent.socialmedia.photosharing.service.MediaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
@@ -10,19 +14,24 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.constraints.NotBlank;
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.emergent.socialmedia.photosharing.resources.MediaResource.REST_USERID_ENDPOINT_PREFIX;
 
 @RestController
-@RequestMapping(value = "/{user_id}")
+@RequestMapping(value = REST_USERID_ENDPOINT_PREFIX)
 public class MediaResource {
 
     @Autowired
     private MediaService mediaService;
 
-    public static final String REST_GET_FEED_ENDPOINT = "/feed/";
+    public static final String REST_USERID_ENDPOINT_PREFIX = "/{user_id}";
+    public static final String REST_GET_FEED_ENDPOINT = "/feed";
     public static final String REST_MEDIA = "/media/";
-    public static final String REST_MEDIA_ACTION = REST_MEDIA+"{media_id}/";
-    public static final String REST_LIKE_DISLIKE_ENDPOINT = REST_MEDIA_ACTION+"like"; // PUT, DELETE
-    public static final String REST_COMMENT_UNCOMMENT_ENDPOINT = REST_MEDIA_ACTION+"comment"; // PUT, DELETE
+    public static final String REST_MEDIA_ACTION = REST_MEDIA+"{media_id}";
+    public static final String REST_LIKE_DISLIKE_ENDPOINT = REST_MEDIA_ACTION+"/like"; // PUT, DELETE
+    public static final String REST_COMMENT_UNCOMMENT_ENDPOINT = REST_MEDIA_ACTION+"/comment"; // PUT, DELETE
     public static final String REST_GET_LIKED_MEDIA = "/liked/";
     public static final String REST_GET_COMMENTED_MEDIA = "/commented/";
 
@@ -46,8 +55,25 @@ public class MediaResource {
 
     @GetMapping(path=REST_GET_FEED_ENDPOINT,
                 produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<Object> getPhotoFeed(){
-        return ResponseEntity.ok(mediaService.getAllMediaOrderByCreatedAtDesc());
+    public ResponseEntity<Object> getPhotoFeedWithAfterAndLimit(@RequestParam(value = "after", required = false) Integer after,
+                                               @RequestParam(value = "limit", required = false) Integer limit){
+        if(after == null) after = 0;
+
+        AbstractResponseDTO feedResponseDTO = new FeedResponseDTO();
+        List<Media> resultList = new ArrayList<>();
+
+        if(limit != null && after >= 0){
+            resultList.addAll(mediaService.getAllMediaOrderByCreatedAtDesc(after, limit));
+        } else {
+            resultList.addAll(mediaService.getAllMediaOrderByCreatedAtDesc());
+        }
+        Data data = new Data();
+        if(!resultList.isEmpty()) {
+            data.setChildren(resultList);
+            data.setAfter(after+1);
+        }
+        feedResponseDTO.setData(data);
+        return ResponseEntity.ok(feedResponseDTO);
     }
 
     @PutMapping(path=REST_LIKE_DISLIKE_ENDPOINT,

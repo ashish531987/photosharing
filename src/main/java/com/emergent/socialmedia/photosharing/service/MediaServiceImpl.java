@@ -7,6 +7,8 @@ import com.emergent.socialmedia.photosharing.repositories.UserRepository;
 import com.emergent.socialmedia.photosharing.resources.MediaResource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -41,13 +43,14 @@ public class MediaServiceImpl implements MediaService {
         media.setFileSize(file.getSize());
 
         // Fetch User
-        Optional<User> optionalUser = userRepository.findById(1L);
+        Optional<User> optionalUser = userRepository.findById(Integer.valueOf(userId).longValue());
         if(optionalUser.isPresent()){
             User user = optionalUser.get();
             media.setUser(user);
         } // TODO throw exception
         mediaRepository.save(media);
         String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path(userId)
                 .path(MediaResource.REST_MEDIA)
                 .path(String.valueOf(media.getId()))
                 .toUriString();
@@ -64,6 +67,12 @@ public class MediaServiceImpl implements MediaService {
             Media media = optionalMedia.get();
             return storageService.loadAsResource(String.valueOf(media.getId()));
         } else return null; // TODO throw exception
+    }
+
+    @Override
+    public List<Media> getAllMediaOrderByCreatedAtDesc(Integer after, Integer limit) {
+        Pageable pageable = PageRequest.of(after, limit);
+        return mediaRepository.findAllByOrderByCreatedAtDesc(pageable); // TODO filter own data
     }
 
     @Override

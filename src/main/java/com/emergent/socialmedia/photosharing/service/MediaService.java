@@ -11,6 +11,8 @@ public interface MediaService {
 
     Resource getMedia(String mediaId);
 
+    List<Media> getAllMediaOrderByCreatedAtDesc(Integer after, Integer limit);
+
     List<Media> getAllMediaOrderByCreatedAtDesc();
 
     Media like(String userId, String mediaId);
