@@ -25,4 +25,6 @@ public interface MediaService {
     List<Media> getAllMediaLikedByUserId(Long userId);
 
     List<Media> getAllMediaCommentedByUserId(Long userId);
+
+    AbstractResponseDTO getAllCommentsOrderByCreatedAtDesc(Long userId, Long mediaId, Long after, Integer limit);
 }

@@ -10,6 +10,7 @@ import com.emergent.socialmedia.photosharing.repositories.MediaRepository;
 import com.emergent.socialmedia.photosharing.repositories.UserRepository;
 import com.emergent.socialmedia.photosharing.resources.MediaResource;
 import com.emergent.socialmedia.photosharing.resources.dto.response.AbstractResponseDTO;
+import com.emergent.socialmedia.photosharing.resources.dto.response.CommentsResponseDTO;
 import com.emergent.socialmedia.photosharing.resources.dto.response.Data;
 import com.emergent.socialmedia.photosharing.resources.dto.response.FeedResponseDTO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -87,7 +88,6 @@ public class MediaServiceImpl implements MediaService {
     @Override
     public AbstractResponseDTO getAllMediaOrderByCreatedAtDesc(Long after, Integer limit) {
         if(after == null) after = 0L;
-
         AbstractResponseDTO feedResponseDTO = new FeedResponseDTO();
         List<Media> resultList;
 
@@ -101,7 +101,7 @@ public class MediaServiceImpl implements MediaService {
         } else {
             resultList = new ArrayList<>(mediaRepository.findAllByOrderByCreatedAtDesc());
         }
-        Data data = new Data();
+        Data<Media> data = new Data<>();
         if(!resultList.isEmpty()) {
             data.setChildren(resultList);
             data.setAfter(resultList.get(resultList.size()-1).getId());
@@ -225,5 +225,31 @@ public class MediaServiceImpl implements MediaService {
     @Override
     public List<Media> getAllMediaCommentedByUserId(Long userId) {
         return null;
+    }
+
+    @Override
+    public AbstractResponseDTO getAllCommentsOrderByCreatedAtDesc(Long userId, Long mediaId, Long after, Integer limit) {
+        if(after == null) after = 0L;
+        AbstractResponseDTO commentsResponseDTO = new CommentsResponseDTO();
+        List<Comments> resultList;
+
+        if(limit != null && after >= 0){
+            Date date = new Date();
+            Optional<Comments> optionalComment = commentsRepository.findById(after);
+            if(optionalComment.isPresent()) date = optionalComment.get().getCommentedAt();
+            Pageable pageable = PageRequest.of(0, limit, new Sort(Sort.Direction.DESC, "id"));
+            resultList = commentsRepository.findAllByMediaIdAndCommentedAtBefore(mediaId, date, pageable); // TODO filter own data
+        } else {
+            Pageable pageable = PageRequest.of(0, 100, new Sort(Sort.Direction.DESC, "commentedAt"));
+            resultList = new ArrayList<>(commentsRepository.findAllByMediaId(mediaId, pageable));
+        }
+        Data<Comments> data = new Data<>();
+        if(!resultList.isEmpty()) {
+            data.setChildren(resultList);
+            data.setAfter(resultList.get(resultList.size()-1).getId());
+        }
+
+        commentsResponseDTO.setData(data);
+        return commentsResponseDTO;
     }
 }

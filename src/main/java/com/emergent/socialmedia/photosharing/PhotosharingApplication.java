@@ -33,7 +33,6 @@ public class PhotosharingApplication {
 				User2 - Photo2
 					{likes}/	\{comments}
 						User3	User2
-		 */
 		User user1 = new User();
 		user1.setEmail("ashish@emergent.com");
 		user1.setFullName("Ashish Mahamuni");
@@ -51,5 +50,6 @@ public class PhotosharingApplication {
 		userRepository.save(user1);
 		userRepository.save(user2);
 		userRepository.save(user3);
+		 */
 	}
 }

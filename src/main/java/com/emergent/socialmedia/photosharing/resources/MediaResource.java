@@ -68,11 +68,19 @@ public class MediaResource {
         return ResponseEntity.ok(mediaService.dislike(userId, mediaId));
     }
 
+    @GetMapping(path=REST_COMMENT_UNCOMMENT_ENDPOINT,
+            produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public ResponseEntity<Object> getComments(@NotBlank @PathVariable(name="user_id") Long userId,
+                                              @NotBlank @PathVariable(name="media_id") Long mediaId,
+                                              @RequestParam(value = "after", required = false) Long after,
+                                              @RequestParam(value = "limit", required = false) Integer limit){
+        return ResponseEntity.ok(mediaService.getAllCommentsOrderByCreatedAtDesc(userId, mediaId, after, limit));
+    }
     @PutMapping(path=REST_COMMENT_UNCOMMENT_ENDPOINT,
             consumes = MediaType.APPLICATION_JSON_UTF8_VALUE,
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<Object> comment(@NotBlank @PathVariable(name="user_id") Long userId,
-                                       @NotBlank @PathVariable(name="media_id") Long mediaId,
+                                          @NotBlank @PathVariable(name="media_id") Long mediaId,
                                           @RequestBody CommentsRequestDTO CommentsRequestDTO){
         return ResponseEntity.ok(mediaService.comment(userId, mediaId, CommentsRequestDTO.getComment()));
     }

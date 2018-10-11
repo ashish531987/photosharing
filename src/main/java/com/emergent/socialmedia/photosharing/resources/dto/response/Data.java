@@ -1,19 +1,17 @@
 package com.emergent.socialmedia.photosharing.resources.dto.response;
 
-import com.emergent.socialmedia.photosharing.domain.Media;
-
 import java.util.ArrayList;
 import java.util.List;
 
-public class Data {
-    private List<Media> children = new ArrayList<>();
+public class Data<T> {
+    private List<T> children = new ArrayList<>();
     private Long after = -1L;
 
-    public List<Media> getChildren() {
+    public List<T> getChildren() {
         return children;
     }
 
-    public void setChildren(List<Media> children) {
+    public void setChildren(List<T> children) {
         this.children = children;
     }
 

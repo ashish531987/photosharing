@@ -1,6 +1,6 @@
 package com.emergent.socialmedia.photosharing.resources.dto.response;
 
-public class AbstractResponseDTO {
+public abstract class AbstractResponseDTO {
     public Meta getMeta() {
         return meta;
     }
