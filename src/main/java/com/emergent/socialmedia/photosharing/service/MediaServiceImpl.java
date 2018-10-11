@@ -1,10 +1,17 @@
 package com.emergent.socialmedia.photosharing.service;
 
+import com.emergent.socialmedia.photosharing.domain.Comments;
+import com.emergent.socialmedia.photosharing.domain.Likes;
 import com.emergent.socialmedia.photosharing.domain.Media;
 import com.emergent.socialmedia.photosharing.domain.User;
+import com.emergent.socialmedia.photosharing.repositories.CommentsRepository;
+import com.emergent.socialmedia.photosharing.repositories.LikesRepository;
 import com.emergent.socialmedia.photosharing.repositories.MediaRepository;
 import com.emergent.socialmedia.photosharing.repositories.UserRepository;
 import com.emergent.socialmedia.photosharing.resources.MediaResource;
+import com.emergent.socialmedia.photosharing.resources.dto.response.AbstractResponseDTO;
+import com.emergent.socialmedia.photosharing.resources.dto.response.Data;
+import com.emergent.socialmedia.photosharing.resources.dto.response.FeedResponseDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.PageRequest;
@@ -14,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +36,12 @@ public class MediaServiceImpl implements MediaService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private LikesRepository likesRepository;
+
+    @Autowired
+    private CommentsRepository commentsRepository;
 
     @Override
     public Media storeMedia(String userId, MultipartFile file) {
@@ -71,47 +85,145 @@ public class MediaServiceImpl implements MediaService {
     }
 
     @Override
-    public List<Media> getAllMediaOrderByCreatedAtDesc(Long after, Integer limit) {
-        Date date = new Date();
-        Optional<Media> optionalMedia = mediaRepository.findById(after);
-        if(optionalMedia.isPresent()) date = optionalMedia.get().getCreatedAt();
+    public AbstractResponseDTO getAllMediaOrderByCreatedAtDesc(Long after, Integer limit) {
+        if(after == null) after = 0L;
 
-        Pageable pageable = PageRequest.of(0, limit, new Sort(Sort.Direction.DESC, "id"));
-        return mediaRepository.findAllByCreatedAtBefore(date, pageable); // TODO filter own data
+        AbstractResponseDTO feedResponseDTO = new FeedResponseDTO();
+        List<Media> resultList;
+
+        if(limit != null && after >= 0){
+            Date date = new Date();
+            Optional<Media> optionalMedia = mediaRepository.findById(after);
+            if(optionalMedia.isPresent()) date = optionalMedia.get().getCreatedAt();
+
+            Pageable pageable = PageRequest.of(0, limit, new Sort(Sort.Direction.DESC, "id"));
+            resultList = mediaRepository.findAllByCreatedAtBefore(date, pageable); // TODO filter own data
+        } else {
+            resultList = new ArrayList<>(mediaRepository.findAllByOrderByCreatedAtDesc());
+        }
+        Data data = new Data();
+        if(!resultList.isEmpty()) {
+            data.setChildren(resultList);
+            data.setAfter(resultList.get(resultList.size()-1).getId());
+        }
+
+        feedResponseDTO.setData(data);
+        return feedResponseDTO;
     }
 
     @Override
-    public List<Media> getAllMediaOrderByCreatedAtDesc() {
-        return mediaRepository.findAllByOrderByCreatedAtDesc(); // TODO filter own data
-    }
+    public Media like(Long userId, Long mediaId) {
+        // Step 1 add new like in LikesRepo
+        // Step 2 Change count in MediaRepo
+        Optional<Media> optionalMedia = mediaRepository.findById(mediaId);
 
-    @Override
-    public Media like(String userId, String mediaId) {
+        if(!likesRepository.findOneByUserIdAndMediaId(userId, mediaId).isPresent()) {
+            if (optionalMedia.isPresent()) {
+                Media media = optionalMedia.get();
+                // Fetch User
+                Optional<User> optionalUser = userRepository.findById(userId);
+                if (optionalUser.isPresent()) {
+                    User user = optionalUser.get();
+                    Likes like = new Likes();
+                    like.setMedia(media);
+                    like.setUser(user);
+                    likesRepository.save(like);
+                    media.setLikesCount(media.getLikesCount() + 1);
+                    media = mediaRepository.save(media);
+                    return media;
+                }
+
+            } // TODO Throw exception
+        } else{
+            return optionalMedia.orElse(null); // TODO Throw exception
+        }
         return null;
     }
 
     @Override
-    public Media dislike(String userId, String mediaId) {
+    public Media dislike(Long userId, Long mediaId) {
+        Optional<Media> optionalMedia = mediaRepository.findById(mediaId);
+        Optional<Likes> optionalLikes = likesRepository.findOneByUserIdAndMediaId(userId, mediaId);
+        if(optionalLikes.isPresent()) {
+            if (optionalMedia.isPresent()) {
+                Media media = optionalMedia.get();
+                // Fetch User
+                Optional<User> optionalUser = userRepository.findById(userId);
+                if (optionalUser.isPresent()) {
+                    likesRepository.delete(optionalLikes.get());
+                    media.setLikesCount(media.getLikesCount() - 1);
+                    media = mediaRepository.save(media);
+                    return media;
+                }
+
+            } // TODO Throw exception
+        } else{
+            return optionalMedia.orElse(null); // TODO Throw exception
+        }
         return null;
     }
 
     @Override
-    public Media comment(String userId, String mediaId, String message) {
+    public Media comment(Long userId, Long mediaId, String message) {
+        // Step 1 add new comment in CommentsRepo
+        // Step 2 Change count in MediaRepo
+        Optional<Media> optionalMedia = mediaRepository.findById(mediaId);
+
+        if(!commentsRepository.findOneByUserIdAndMediaId(userId, mediaId).isPresent()) {
+            if (optionalMedia.isPresent()) {
+                Media media = optionalMedia.get();
+                // Fetch User
+                Optional<User> optionalUser = userRepository.findById(userId);
+                if (optionalUser.isPresent()) {
+                    User user = optionalUser.get();
+                    Comments comments = new Comments();
+                    comments.setMedia(media);
+                    comments.setUser(user);
+                    comments.setComment(message);
+                    comments.setCommentedAt(new Date());
+                    commentsRepository.save(comments);
+                    media.setCommentsCount(media.getCommentsCount() + 1);
+                    media = mediaRepository.save(media);
+                    return media;
+                }
+
+            } // TODO Throw exception
+        } else{
+            return optionalMedia.orElse(null); // TODO Throw exception
+        }
         return null;
     }
 
     @Override
-    public Media uncomment(String userId, String mediaId) {
+    public Media uncomment(Long userId, Long mediaId) {
+        Optional<Media> optionalMedia = mediaRepository.findById(mediaId);
+        Optional<Comments> optionalComments = commentsRepository.findOneByUserIdAndMediaId(userId, mediaId);
+        if(optionalComments.isPresent()) {
+            if (optionalMedia.isPresent()) {
+                Media media = optionalMedia.get();
+                // Fetch User
+                Optional<User> optionalUser = userRepository.findById(userId);
+                if (optionalUser.isPresent()) {
+                    commentsRepository.delete(optionalComments.get());
+                    media.setCommentsCount(media.getCommentsCount() - 1);
+                    media = mediaRepository.save(media);
+                    return media;
+                }
+
+            } // TODO Throw exception
+        } else{
+            return optionalMedia.orElse(null); // TODO Throw exception
+        }
         return null;
     }
 
     @Override
-    public List<Media> getAllMediaLikedByUserId(String userId) {
+    public List<Media> getAllMediaLikedByUserId(Long userId) {
         return null;
     }
 
     @Override
-    public List<Media> getAllMediaCommentedByUserId(String userId) {
+    public List<Media> getAllMediaCommentedByUserId(Long userId) {
         return null;
     }
 }

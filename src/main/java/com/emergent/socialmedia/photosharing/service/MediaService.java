@@ -1,6 +1,7 @@
 package com.emergent.socialmedia.photosharing.service;
 
 import com.emergent.socialmedia.photosharing.domain.Media;
+import com.emergent.socialmedia.photosharing.resources.dto.response.AbstractResponseDTO;
 import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -11,19 +12,17 @@ public interface MediaService {
 
     Resource getMedia(String mediaId);
 
-    List<Media> getAllMediaOrderByCreatedAtDesc(Long after, Integer limit);
+    AbstractResponseDTO getAllMediaOrderByCreatedAtDesc(Long after, Integer limit);
 
-    List<Media> getAllMediaOrderByCreatedAtDesc();
+    Media like(Long userId, Long mediaId);
 
-    Media like(String userId, String mediaId);
+    Media dislike(Long userId, Long mediaId);
 
-    Media dislike(String userId, String mediaId);
+    Media comment(Long userId, Long mediaId, String message);
 
-    Media comment(String userId, String mediaId, String message);
+    Media uncomment(Long userId, Long mediaId);
 
-    Media uncomment(String userId, String mediaId);
+    List<Media> getAllMediaLikedByUserId(Long userId);
 
-    List<Media> getAllMediaLikedByUserId(String userId);
-
-    List<Media> getAllMediaCommentedByUserId(String userId);
+    List<Media> getAllMediaCommentedByUserId(Long userId);
 }

@@ -18,17 +18,13 @@ public class Media {
 
     private Long fileSize;
 
-    @ManyToOne(cascade=CascadeType.ALL)
+    @ManyToOne
     private User user; // creator
 
     private String downloadURI;
 
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-
-    @JsonIgnore
-    @OneToMany(mappedBy = "media")
-    private Set<Likes> likes = new HashSet<>();
 
     @JsonIgnore
     @OneToMany(mappedBy = "media")
@@ -62,13 +58,6 @@ public class Media {
         this.createdAt = createdAt;
     }
 
-    public Set<Likes> getLike() {
-        return likes;
-    }
-
-    public void setLikes(Set<Likes> likes) {
-        this.likes = likes;
-    }
 
     public Set<Comments> getComments() {
         return comments;
@@ -100,10 +89,6 @@ public class Media {
 
     public void setDownloadURI(String downloadURI) {
         this.downloadURI = downloadURI;
-    }
-
-    public Set<Likes> getLikes() {
-        return likes;
     }
 
     public String getFileName() {

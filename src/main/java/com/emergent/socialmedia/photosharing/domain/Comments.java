@@ -1,6 +1,9 @@
 package com.emergent.socialmedia.photosharing.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
+import java.util.Date;
 
 @Entity
 @Table(name = "comments")
@@ -9,13 +12,18 @@ public class Comments {
     @GeneratedValue
     private Long id;
 
-    @ManyToOne(cascade=CascadeType.ALL)
+    @JsonIgnore
+    @ManyToOne
     private Media media; // Media liked by atleast one user.
 
-    @ManyToOne(cascade=CascadeType.ALL)
+    @JsonIgnore
+    @ManyToOne
     private User user; // Id of the User Who likes this media.
 
     private String comment;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date commentedAt;
 
     public Long getId() {
         return id;
@@ -43,6 +51,14 @@ public class Comments {
 
     public String getComment() {
         return comment;
+    }
+
+    public Date getCommentedAt() {
+        return commentedAt;
+    }
+
+    public void setCommentedAt(Date commentedAt) {
+        this.commentedAt = commentedAt;
     }
 
     public void setComment(String comment) {

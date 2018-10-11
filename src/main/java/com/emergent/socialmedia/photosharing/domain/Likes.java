@@ -1,5 +1,7 @@
 package com.emergent.socialmedia.photosharing.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
 
 @Entity
@@ -9,10 +11,12 @@ public class Likes {
     @GeneratedValue
     private Long id;
 
-    @ManyToOne(cascade=CascadeType.ALL)
+    @JsonIgnore
+    @ManyToOne
     private Media media; // Media liked by atleast one user.
 
-    @ManyToOne(cascade=CascadeType.ALL)
+    @JsonIgnore
+    @ManyToOne
     private User user; // Id of the User Who likes this media.
 
     public Long getId() {
