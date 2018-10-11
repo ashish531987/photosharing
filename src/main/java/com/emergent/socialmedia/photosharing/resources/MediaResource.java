@@ -26,7 +26,8 @@ public class MediaResource {
     public static final String REST_MEDIA = "/media/";
     public static final String REST_MEDIA_ACTION = REST_MEDIA+"{media_id}";
     public static final String REST_LIKE_DISLIKE_ENDPOINT = REST_MEDIA_ACTION+"/like"; // PUT, DELETE
-    public static final String REST_COMMENT_UNCOMMENT_ENDPOINT = REST_MEDIA_ACTION+"/comment"; // PUT, DELETE
+    public static final String REST_GET_ALL_CREATE_COMMENT_BY_USER_ENDPOINT = REST_MEDIA_ACTION+"/comment"; // POST
+    public static final String REST_DELETE_COMMENT_ENDPOINT = REST_MEDIA_ACTION+"/comment/{comment_id}"; // DELETE
     public static final String REST_GET_LIKED_MEDIA = "/liked/";
     public static final String REST_GET_COMMENTED_MEDIA = "/commented/";
 
@@ -50,9 +51,10 @@ public class MediaResource {
 
     @GetMapping(path=REST_GET_FEED_ENDPOINT,
                 produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<Object> getPhotoFeedWithAfterAndLimit(@RequestParam(value = "after", required = false) Long after,
-                                               @RequestParam(value = "limit", required = false) Integer limit){
-        return ResponseEntity.ok(mediaService.getAllMediaOrderByCreatedAtDesc(after, limit));
+    public ResponseEntity<Object> getPhotoFeedWithAfterAndLimit(@NotBlank @PathVariable(name="user_id") Long userId,
+                                                                @RequestParam(value = "after", required = false) Long after,
+                                                                @RequestParam(value = "limit", required = false) Integer limit){
+        return ResponseEntity.ok(mediaService.getAllMediaOrderByCreatedAtDesc(userId, after, limit));
     }
 
     @PutMapping(path=REST_LIKE_DISLIKE_ENDPOINT,
@@ -68,7 +70,7 @@ public class MediaResource {
         return ResponseEntity.ok(mediaService.dislike(userId, mediaId));
     }
 
-    @GetMapping(path=REST_COMMENT_UNCOMMENT_ENDPOINT,
+    @GetMapping(path=REST_GET_ALL_CREATE_COMMENT_BY_USER_ENDPOINT,
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<Object> getComments(@NotBlank @PathVariable(name="user_id") Long userId,
                                               @NotBlank @PathVariable(name="media_id") Long mediaId,
@@ -76,7 +78,7 @@ public class MediaResource {
                                               @RequestParam(value = "limit", required = false) Integer limit){
         return ResponseEntity.ok(mediaService.getAllCommentsOrderByCreatedAtDesc(userId, mediaId, after, limit));
     }
-    @PutMapping(path=REST_COMMENT_UNCOMMENT_ENDPOINT,
+    @PostMapping(path=REST_GET_ALL_CREATE_COMMENT_BY_USER_ENDPOINT,
             consumes = MediaType.APPLICATION_JSON_UTF8_VALUE,
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<Object> comment(@NotBlank @PathVariable(name="user_id") Long userId,
@@ -85,11 +87,12 @@ public class MediaResource {
         return ResponseEntity.ok(mediaService.comment(userId, mediaId, CommentsRequestDTO.getComment()));
     }
 
-    @DeleteMapping(path=REST_COMMENT_UNCOMMENT_ENDPOINT,
+    @DeleteMapping(path=REST_DELETE_COMMENT_ENDPOINT,
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<Object> uncomment(@NotBlank @PathVariable(name="user_id") Long userId,
-                                         @NotBlank @PathVariable(name="media_id") Long mediaId){
-        return ResponseEntity.ok(mediaService.uncomment(userId, mediaId));
+                                            @NotBlank @PathVariable(name="media_id") Long mediaId,
+                                            @NotBlank @PathVariable(name="comment_id") Long commentId){
+        return ResponseEntity.ok(mediaService.uncomment(userId, mediaId, commentId));
     }
 
     @GetMapping(path=REST_GET_LIKED_MEDIA, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)

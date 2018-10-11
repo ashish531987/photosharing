@@ -9,10 +9,7 @@ import com.emergent.socialmedia.photosharing.repositories.LikesRepository;
 import com.emergent.socialmedia.photosharing.repositories.MediaRepository;
 import com.emergent.socialmedia.photosharing.repositories.UserRepository;
 import com.emergent.socialmedia.photosharing.resources.MediaResource;
-import com.emergent.socialmedia.photosharing.resources.dto.response.AbstractResponseDTO;
-import com.emergent.socialmedia.photosharing.resources.dto.response.CommentsResponseDTO;
-import com.emergent.socialmedia.photosharing.resources.dto.response.Data;
-import com.emergent.socialmedia.photosharing.resources.dto.response.FeedResponseDTO;
+import com.emergent.socialmedia.photosharing.resources.dto.response.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.PageRequest;
@@ -45,7 +42,7 @@ public class MediaServiceImpl implements MediaService {
     private CommentsRepository commentsRepository;
 
     @Override
-    public Media storeMedia(String userId, MultipartFile file) {
+    public MediaResponseDTO storeMedia(String userId, MultipartFile file) {
         /*
             1. Create New Media and populate known properties.
             2. Fetch User.
@@ -73,7 +70,7 @@ public class MediaServiceImpl implements MediaService {
         storageService.store(media.getId(), file);
         media.setDownloadURI(fileDownloadUri);
         mediaRepository.save(media);
-        return media;
+        return new MediaResponseDTO().fromMediaAndLikedByME(media, false);
     }
 
     @Override
@@ -86,7 +83,7 @@ public class MediaServiceImpl implements MediaService {
     }
 
     @Override
-    public AbstractResponseDTO getAllMediaOrderByCreatedAtDesc(Long after, Integer limit) {
+    public AbstractResponseDTO getAllMediaOrderByCreatedAtDesc(Long userId, Long after, Integer limit) {
         if(after == null) after = 0L;
         AbstractResponseDTO feedResponseDTO = new FeedResponseDTO();
         List<Media> resultList;
@@ -101,9 +98,13 @@ public class MediaServiceImpl implements MediaService {
         } else {
             resultList = new ArrayList<>(mediaRepository.findAllByOrderByCreatedAtDesc());
         }
-        Data<Media> data = new Data<>();
+        Data<MediaResponseDTO> data = new Data<>();
         if(!resultList.isEmpty()) {
-            data.setChildren(resultList);
+            for(Media media : resultList) {
+                Boolean likedByMe = likedByMe(userId, media.getId());
+
+                data.getChildren().add(new MediaResponseDTO().fromMediaAndLikedByME(media, likedByMe));
+            }
             data.setAfter(resultList.get(resultList.size()-1).getId());
         }
 
@@ -112,7 +113,7 @@ public class MediaServiceImpl implements MediaService {
     }
 
     @Override
-    public Media like(Long userId, Long mediaId) {
+    public MediaResponseDTO like(Long userId, Long mediaId) {
         // Step 1 add new like in LikesRepo
         // Step 2 Change count in MediaRepo
         Optional<Media> optionalMedia = mediaRepository.findById(mediaId);
@@ -130,18 +131,20 @@ public class MediaServiceImpl implements MediaService {
                     likesRepository.save(like);
                     media.setLikesCount(media.getLikesCount() + 1);
                     media = mediaRepository.save(media);
-                    return media;
+                    return new MediaResponseDTO().fromMediaAndLikedByME(media, true);
                 }
 
             } // TODO Throw exception
         } else{
-            return optionalMedia.orElse(null); // TODO Throw exception
+            return new MediaResponseDTO().fromMediaAndLikedByME(
+                    optionalMedia.orElse(null) ,
+                    true); // TODO Throw exception
         }
         return null;
     }
 
     @Override
-    public Media dislike(Long userId, Long mediaId) {
+    public MediaResponseDTO dislike(Long userId, Long mediaId) {
         Optional<Media> optionalMedia = mediaRepository.findById(mediaId);
         Optional<Likes> optionalLikes = likesRepository.findOneByUserIdAndMediaId(userId, mediaId);
         if(optionalLikes.isPresent()) {
@@ -153,67 +156,60 @@ public class MediaServiceImpl implements MediaService {
                     likesRepository.delete(optionalLikes.get());
                     media.setLikesCount(media.getLikesCount() - 1);
                     media = mediaRepository.save(media);
-                    return media;
+                    return new MediaResponseDTO().fromMediaAndLikedByME(media, false);
                 }
 
             } // TODO Throw exception
         } else{
-            return optionalMedia.orElse(null); // TODO Throw exception
+            return new MediaResponseDTO().fromMediaAndLikedByME(
+                    optionalMedia.orElse(null),
+                    false); // TODO Throw exception
         }
         return null;
     }
 
     @Override
-    public Media comment(Long userId, Long mediaId, String message) {
+    public MediaResponseDTO comment(Long userId, Long mediaId, String message) {
         // Step 1 add new comment in CommentsRepo
         // Step 2 Change count in MediaRepo
         Optional<Media> optionalMedia = mediaRepository.findById(mediaId);
 
-        if(!commentsRepository.findOneByUserIdAndMediaId(userId, mediaId).isPresent()) {
-            if (optionalMedia.isPresent()) {
-                Media media = optionalMedia.get();
-                // Fetch User
-                Optional<User> optionalUser = userRepository.findById(userId);
-                if (optionalUser.isPresent()) {
-                    User user = optionalUser.get();
-                    Comments comments = new Comments();
-                    comments.setMedia(media);
-                    comments.setUser(user);
-                    comments.setComment(message);
-                    comments.setCommentedAt(new Date());
-                    commentsRepository.save(comments);
-                    media.setCommentsCount(media.getCommentsCount() + 1);
-                    media = mediaRepository.save(media);
-                    return media;
-                }
+        if (optionalMedia.isPresent()) {
+            Media media = optionalMedia.get();
+            // Fetch User
+            Optional<User> optionalUser = userRepository.findById(userId);
+            if (optionalUser.isPresent()) {
+                User user = optionalUser.get();
+                Comments comments = new Comments();
+                comments.setMedia(media);
+                comments.setUser(user);
+                comments.setComment(message);
+                comments.setCommentedAt(new Date());
+                commentsRepository.save(comments);
+                media.setCommentsCount(media.getCommentsCount() + 1);
+                media = mediaRepository.save(media);
+                return new MediaResponseDTO().fromMediaAndLikedByME(media, likedByMe(userId, media.getId()));
+            }
 
-            } // TODO Throw exception
-        } else{
-            return optionalMedia.orElse(null); // TODO Throw exception
-        }
+        } // TODO Throw exception
         return null;
     }
 
     @Override
-    public Media uncomment(Long userId, Long mediaId) {
+    public MediaResponseDTO uncomment(Long userId, Long mediaId, Long commentId) {
         Optional<Media> optionalMedia = mediaRepository.findById(mediaId);
-        Optional<Comments> optionalComments = commentsRepository.findOneByUserIdAndMediaId(userId, mediaId);
-        if(optionalComments.isPresent()) {
-            if (optionalMedia.isPresent()) {
-                Media media = optionalMedia.get();
-                // Fetch User
-                Optional<User> optionalUser = userRepository.findById(userId);
-                if (optionalUser.isPresent()) {
-                    commentsRepository.delete(optionalComments.get());
-                    media.setCommentsCount(media.getCommentsCount() - 1);
-                    media = mediaRepository.save(media);
-                    return media;
-                }
+        if (optionalMedia.isPresent()) {
+            Media media = optionalMedia.get();
+            // Fetch User
+            Optional<User> optionalUser = userRepository.findById(userId);
+            if (optionalUser.isPresent()) {
+                commentsRepository.deleteById(commentId);
+                media.setCommentsCount(media.getCommentsCount() - 1);
+                media = mediaRepository.save(media);
+                return new MediaResponseDTO().fromMediaAndLikedByME(media, likedByMe(userId, mediaId));
+            }
 
-            } // TODO Throw exception
-        } else{
-            return optionalMedia.orElse(null); // TODO Throw exception
-        }
+        } // TODO Throw exception
         return null;
     }
 
@@ -252,4 +248,15 @@ public class MediaServiceImpl implements MediaService {
         commentsResponseDTO.setData(data);
         return commentsResponseDTO;
     }
+    private Boolean likedByMe(Long userId, Long mediaId) {
+        // Assumption - Traversing over all media liked by user media vs. all users liking this media
+        Optional<List<Likes>> optionalLikesList= likesRepository.findAllByUserId(userId);
+
+        Boolean likedByMe = false;
+        if(optionalLikesList.isPresent()){
+            likedByMe = optionalLikesList.get().parallelStream().anyMatch((l)-> l.getMedia().getId().equals(mediaId));
+        }
+        return likedByMe;
+    }
+
 }
