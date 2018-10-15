@@ -48,7 +48,7 @@ public class StorageServiceImpl implements StorageService {
     }
 
     @Override
-    public Resource loadAsResource(String mediaId) {
+    public Resource loadAsResource(String mediaId) throws MyFileNotFoundException {
         try {
             Path filePath = this.fileStorageLocation.resolve(mediaId).normalize();
             Resource resource = new UrlResource(filePath.toUri());

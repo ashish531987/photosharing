@@ -15,8 +15,8 @@ import javax.annotation.PostConstruct;
 		FileStorageProperties.class
 })
 public class PhotosharingApplication {
-	@Autowired
-	UserRepository userRepository;
+//	@Autowired
+//	UserRepository userRepository;
 
 	public static void main(String[] args) {
 		SpringApplication.run(PhotosharingApplication.class, args);

@@ -1,6 +1,8 @@
 package com.emergent.socialmedia.photosharing.resources.dto.response;
 
 import com.emergent.socialmedia.photosharing.domain.Media;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class MediaResponseDTO {
     public MediaResponseDTO() {
@@ -61,6 +63,7 @@ public class MediaResponseDTO {
         this.fileSize = fileSize;
     }
 
+    @JsonProperty("user")
     public UserResponseDTO getUserResponseDTO() {
         return userResponseDTO;
     }

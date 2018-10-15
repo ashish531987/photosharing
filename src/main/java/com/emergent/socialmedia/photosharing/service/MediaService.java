@@ -1,19 +1,20 @@
 package com.emergent.socialmedia.photosharing.service;
 
 import com.emergent.socialmedia.photosharing.domain.Media;
-import com.emergent.socialmedia.photosharing.resources.dto.response.AbstractResponseDTO;
 import com.emergent.socialmedia.photosharing.resources.dto.response.MediaResponseDTO;
+import com.emergent.socialmedia.photosharing.resources.dto.response.ResponseContainerDTO;
+import com.emergent.socialmedia.photosharing.service.exceptions.MyFileNotFoundException;
 import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 public interface MediaService {
-    MediaResponseDTO storeMedia(String userId, MultipartFile file);
+    MediaResponseDTO storeMedia(Long userId, MultipartFile file);
 
-    Resource getMedia(String mediaId);
+    Resource getMedia(Long mediaId) throws MyFileNotFoundException;
 
-    AbstractResponseDTO getAllMediaOrderByCreatedAtDesc(Long userId, Long after, Integer limit);
+    ResponseContainerDTO getAllMediaOrderByCreatedAtDesc(Long userId, Long after, Integer limit);
 
     MediaResponseDTO like(Long userId, Long mediaId);
 
@@ -27,5 +28,5 @@ public interface MediaService {
 
     List<Media> getAllMediaCommentedByUserId(Long userId);
 
-    AbstractResponseDTO getAllCommentsOrderByCreatedAtDesc(Long userId, Long mediaId, Long after, Integer limit);
+    ResponseContainerDTO getAllCommentsOrderByCreatedAtDesc(Long userId, Long mediaId, Long after, Integer limit);
 }

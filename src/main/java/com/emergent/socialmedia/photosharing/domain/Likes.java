@@ -13,7 +13,7 @@ public class Likes {
 
     @JsonIgnore
     @ManyToOne
-    private Media media; // Media liked by atleast one user.
+    private Media media; // Media liked by at least one user.
 
     @JsonIgnore
     @ManyToOne

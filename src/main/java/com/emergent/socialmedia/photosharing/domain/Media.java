@@ -10,8 +10,10 @@ import java.util.Set;
 @Entity
 @Table(name = "media")
 public class Media {
+    public static final String MEDIA_ID = "id";
     @Id
     @GeneratedValue
+    @Column(name=MEDIA_ID)
     private Long id;
 
     private String fileName;

@@ -19,10 +19,6 @@ public class User {
     private String fullName;
 
     @JsonIgnore
-    @Column(nullable = false)
-    private String password;
-
-    @JsonIgnore
     @OneToMany(mappedBy = "user")
     private Set<Media> uploadedMedia = new HashSet<>();
 
@@ -55,14 +51,6 @@ public class User {
 
     public void setUploadedMedia(Set<Media> uploadedMedia) {
         this.uploadedMedia = uploadedMedia;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
     }
 
     public String getFullName() {

@@ -8,21 +8,25 @@ import java.util.Date;
 @Entity
 @Table(name = "comments")
 public class Comments {
+    public static final String COMMENTED_AT = "commented_at";
+    public static final String COMMENTS_ID = "id";
+
     @Id
     @GeneratedValue
+    @Column(name=COMMENTS_ID)
     private Long id;
 
     @JsonIgnore
     @ManyToOne
-    private Media media; // Media liked by atleast one user.
+    private Media media; // Media liked by at least one user.
 
-    @JsonIgnore
     @ManyToOne
     private User user; // Id of the User Who likes this media.
 
     private String comment;
 
     @Temporal(TemporalType.TIMESTAMP)
+    @Column(name=COMMENTED_AT)
     private Date commentedAt;
 
     public Long getId() {

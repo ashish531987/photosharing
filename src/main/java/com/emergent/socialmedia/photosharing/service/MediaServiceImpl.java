@@ -9,7 +9,12 @@ import com.emergent.socialmedia.photosharing.repositories.LikesRepository;
 import com.emergent.socialmedia.photosharing.repositories.MediaRepository;
 import com.emergent.socialmedia.photosharing.repositories.UserRepository;
 import com.emergent.socialmedia.photosharing.resources.MediaResource;
-import com.emergent.socialmedia.photosharing.resources.dto.response.*;
+import com.emergent.socialmedia.photosharing.resources.dto.response.Data;
+import com.emergent.socialmedia.photosharing.resources.dto.response.MediaResponseDTO;
+import com.emergent.socialmedia.photosharing.resources.dto.response.ResponseContainerDTO;
+import com.emergent.socialmedia.photosharing.service.exceptions.MediaNotFoundException;
+import com.emergent.socialmedia.photosharing.service.exceptions.MyFileNotFoundException;
+import com.emergent.socialmedia.photosharing.service.exceptions.UserNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.PageRequest;
@@ -42,7 +47,7 @@ public class MediaServiceImpl implements MediaService {
     private CommentsRepository commentsRepository;
 
     @Override
-    public MediaResponseDTO storeMedia(String userId, MultipartFile file) {
+    public MediaResponseDTO storeMedia(Long userId, MultipartFile file) {
         /*
             1. Create New Media and populate known properties.
             2. Fetch User.
@@ -56,14 +61,16 @@ public class MediaServiceImpl implements MediaService {
         media.setFileSize(file.getSize());
 
         // Fetch User
-        Optional<User> optionalUser = userRepository.findById(Integer.valueOf(userId).longValue());
+        Optional<User> optionalUser = userRepository.findById(userId);
         if(optionalUser.isPresent()){
             User user = optionalUser.get();
             media.setUser(user);
-        } // TODO throw exception
+        } else {
+            throw new UserNotFoundException(userId);
+        }
         mediaRepository.save(media);
         String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path(userId)
+                .path(userId.toString())
                 .path(MediaResource.REST_MEDIA)
                 .path(String.valueOf(media.getId()))
                 .toUriString();
@@ -74,18 +81,18 @@ public class MediaServiceImpl implements MediaService {
     }
 
     @Override
-    public Resource getMedia(String mediaId) {
-        Optional<Media> optionalMedia = mediaRepository.findById(Long.valueOf(mediaId));
+    public Resource getMedia(Long mediaId) throws MyFileNotFoundException {
+        Optional<Media> optionalMedia = mediaRepository.findById(mediaId);
         if(optionalMedia.isPresent()){
             Media media = optionalMedia.get();
             return storageService.loadAsResource(String.valueOf(media.getId()));
-        } else return null; // TODO throw exception
+        } else throw new MediaNotFoundException(mediaId);
     }
 
     @Override
-    public AbstractResponseDTO getAllMediaOrderByCreatedAtDesc(Long userId, Long after, Integer limit) {
+    public ResponseContainerDTO getAllMediaOrderByCreatedAtDesc(Long userId, Long after, Integer limit) {
         if(after == null) after = 0L;
-        AbstractResponseDTO feedResponseDTO = new FeedResponseDTO();
+        ResponseContainerDTO feedResponseDTO = new ResponseContainerDTO();
         List<Media> resultList;
 
         if(limit != null && after >= 0){
@@ -93,8 +100,8 @@ public class MediaServiceImpl implements MediaService {
             Optional<Media> optionalMedia = mediaRepository.findById(after);
             if(optionalMedia.isPresent()) date = optionalMedia.get().getCreatedAt();
 
-            Pageable pageable = PageRequest.of(0, limit, new Sort(Sort.Direction.DESC, "id"));
-            resultList = mediaRepository.findAllByCreatedAtBefore(date, pageable); // TODO filter own data
+            Pageable pageable = PageRequest.of(0, limit, new Sort(Sort.Direction.DESC, Media.MEDIA_ID));
+            resultList = mediaRepository.findAllByCreatedAtBefore(date, pageable);
         } else {
             resultList = new ArrayList<>(mediaRepository.findAllByOrderByCreatedAtDesc());
         }
@@ -118,8 +125,8 @@ public class MediaServiceImpl implements MediaService {
         // Step 2 Change count in MediaRepo
         Optional<Media> optionalMedia = mediaRepository.findById(mediaId);
 
-        if(!likesRepository.findOneByUserIdAndMediaId(userId, mediaId).isPresent()) {
-            if (optionalMedia.isPresent()) {
+        if(optionalMedia.isPresent()){
+            if(!likesRepository.findOneByUserIdAndMediaId(userId, mediaId).isPresent()) {
                 Media media = optionalMedia.get();
                 // Fetch User
                 Optional<User> optionalUser = userRepository.findById(userId);
@@ -132,23 +139,23 @@ public class MediaServiceImpl implements MediaService {
                     media.setLikesCount(media.getLikesCount() + 1);
                     media = mediaRepository.save(media);
                     return new MediaResponseDTO().fromMediaAndLikedByME(media, true);
-                }
+                } else throw new UserNotFoundException(userId);
 
-            } // TODO Throw exception
-        } else{
-            return new MediaResponseDTO().fromMediaAndLikedByME(
-                    optionalMedia.orElse(null) ,
-                    true); // TODO Throw exception
+            } else return new MediaResponseDTO().fromMediaAndLikedByME(
+                    optionalMedia.get(),
+                    true);
+
+        }else{
+            throw new MediaNotFoundException(mediaId);
         }
-        return null;
     }
 
     @Override
     public MediaResponseDTO dislike(Long userId, Long mediaId) {
         Optional<Media> optionalMedia = mediaRepository.findById(mediaId);
         Optional<Likes> optionalLikes = likesRepository.findOneByUserIdAndMediaId(userId, mediaId);
-        if(optionalLikes.isPresent()) {
-            if (optionalMedia.isPresent()) {
+        if(optionalMedia.isPresent()){
+            if(optionalLikes.isPresent()) {
                 Media media = optionalMedia.get();
                 // Fetch User
                 Optional<User> optionalUser = userRepository.findById(userId);
@@ -157,15 +164,13 @@ public class MediaServiceImpl implements MediaService {
                     media.setLikesCount(media.getLikesCount() - 1);
                     media = mediaRepository.save(media);
                     return new MediaResponseDTO().fromMediaAndLikedByME(media, false);
-                }
-
-            } // TODO Throw exception
-        } else{
-            return new MediaResponseDTO().fromMediaAndLikedByME(
-                    optionalMedia.orElse(null),
-                    false); // TODO Throw exception
-        }
-        return null;
+                } else throw new UserNotFoundException(userId);
+            } else{
+                return new MediaResponseDTO().fromMediaAndLikedByME(
+                        optionalMedia.get(),
+                        false);
+            }
+        } else throw new MediaNotFoundException(mediaId);
     }
 
     @Override
@@ -189,10 +194,9 @@ public class MediaServiceImpl implements MediaService {
                 media.setCommentsCount(media.getCommentsCount() + 1);
                 media = mediaRepository.save(media);
                 return new MediaResponseDTO().fromMediaAndLikedByME(media, likedByMe(userId, media.getId()));
-            }
+            } else throw new UserNotFoundException(userId);
 
-        } // TODO Throw exception
-        return null;
+        } else throw new MediaNotFoundException(mediaId);
     }
 
     @Override
@@ -207,10 +211,9 @@ public class MediaServiceImpl implements MediaService {
                 media.setCommentsCount(media.getCommentsCount() - 1);
                 media = mediaRepository.save(media);
                 return new MediaResponseDTO().fromMediaAndLikedByME(media, likedByMe(userId, mediaId));
-            }
+            } else throw new UserNotFoundException(userId);
 
-        } // TODO Throw exception
-        return null;
+        } else throw new MediaNotFoundException(mediaId);
     }
 
     @Override
@@ -224,19 +227,19 @@ public class MediaServiceImpl implements MediaService {
     }
 
     @Override
-    public AbstractResponseDTO getAllCommentsOrderByCreatedAtDesc(Long userId, Long mediaId, Long after, Integer limit) {
+    public ResponseContainerDTO getAllCommentsOrderByCreatedAtDesc(Long userId, Long mediaId, Long after, Integer limit) {
         if(after == null) after = 0L;
-        AbstractResponseDTO commentsResponseDTO = new CommentsResponseDTO();
+        ResponseContainerDTO commentsResponseDTO = new ResponseContainerDTO();
         List<Comments> resultList;
 
         if(limit != null && after >= 0){
             Date date = new Date();
             Optional<Comments> optionalComment = commentsRepository.findById(after);
             if(optionalComment.isPresent()) date = optionalComment.get().getCommentedAt();
-            Pageable pageable = PageRequest.of(0, limit, new Sort(Sort.Direction.DESC, "id"));
-            resultList = commentsRepository.findAllByMediaIdAndCommentedAtBefore(mediaId, date, pageable); // TODO filter own data
+            Pageable pageable = PageRequest.of(0, limit, new Sort(Sort.Direction.DESC, Comments.COMMENTS_ID));
+            resultList = commentsRepository.findAllByMediaIdAndCommentedAtBefore(mediaId, date, pageable);
         } else {
-            Pageable pageable = PageRequest.of(0, 100, new Sort(Sort.Direction.DESC, "commentedAt"));
+            Pageable pageable = PageRequest.of(0, 100, new Sort(Sort.Direction.DESC, Comments.COMMENTED_AT));
             resultList = new ArrayList<>(commentsRepository.findAllByMediaId(mediaId, pageable));
         }
         Data<Comments> data = new Data<>();
@@ -254,7 +257,7 @@ public class MediaServiceImpl implements MediaService {
 
         Boolean likedByMe = false;
         if(optionalLikesList.isPresent()){
-            likedByMe = optionalLikesList.get().parallelStream().anyMatch((l)-> l.getMedia().getId().equals(mediaId));
+            likedByMe = optionalLikesList.get().parallelStream().anyMatch((l)-> l.getMedia().getId().equals(Media.MEDIA_ID));
         }
         return likedByMe;
     }

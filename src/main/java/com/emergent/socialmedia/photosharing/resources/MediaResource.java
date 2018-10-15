@@ -1,21 +1,25 @@
 package com.emergent.socialmedia.photosharing.resources;
 
 import com.emergent.socialmedia.photosharing.resources.dto.request.CommentsRequestDTO;
+import com.emergent.socialmedia.photosharing.resources.dto.response.ExceptionResponseContainerDTO;
 import com.emergent.socialmedia.photosharing.service.MediaService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
-
-import static com.emergent.socialmedia.photosharing.resources.MediaResource.REST_USERID_ENDPOINT_PREFIX;
+import java.util.Date;
 
 @RestController
-@RequestMapping(value = REST_USERID_ENDPOINT_PREFIX)
+@RequestMapping(value = MediaResource.REST_USERID_ENDPOINT_PREFIX)
 public class MediaResource {
 
     @Autowired
@@ -34,14 +38,13 @@ public class MediaResource {
 
     @PostMapping(path=REST_MEDIA,
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<Object> fileUpload(@NotBlank @PathVariable(name="user_id") String userId,
+    public ResponseEntity<Object> fileUpload(@NotBlank @PathVariable(name="user_id") Long userId,
                                              @RequestParam("file") MultipartFile file){
-        //TODO validate user when integrated with social media account.
-        return ResponseEntity.ok(mediaService.storeMedia(userId, file));
+            return ResponseEntity.ok(mediaService.storeMedia(userId, file));
     }
 
     @GetMapping(path=REST_MEDIA_ACTION)
-    public ResponseEntity<Object> fileDownload(@NotBlank @PathVariable(name="media_id") String mediaId){
+    public ResponseEntity<Object> fileDownload(@NotBlank @PathVariable(name="media_id") Long mediaId){
         Resource resource = mediaService.getMedia(mediaId);
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
@@ -65,8 +68,8 @@ public class MediaResource {
     }
     @DeleteMapping(path=REST_LIKE_DISLIKE_ENDPOINT,
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<Object> dilike(@NotBlank @PathVariable(name="user_id") Long userId,
-                                       @NotBlank @PathVariable(name="media_id") Long mediaId){
+    public ResponseEntity<Object> dislike(@NotBlank @PathVariable(name="user_id") Long userId,
+                                          @NotBlank @PathVariable(name="media_id") Long mediaId){
         return ResponseEntity.ok(mediaService.dislike(userId, mediaId));
     }
 
@@ -83,7 +86,7 @@ public class MediaResource {
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<Object> comment(@NotBlank @PathVariable(name="user_id") Long userId,
                                           @NotBlank @PathVariable(name="media_id") Long mediaId,
-                                          @RequestBody CommentsRequestDTO CommentsRequestDTO){
+                                          @Valid @RequestBody CommentsRequestDTO CommentsRequestDTO){
         return ResponseEntity.ok(mediaService.comment(userId, mediaId, CommentsRequestDTO.getComment()));
     }
 
@@ -103,5 +106,18 @@ public class MediaResource {
     @GetMapping(path=REST_GET_COMMENTED_MEDIA, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<Object> getAllPhotosCommentedByUserId(@NotBlank @PathVariable(name="user_id") Long userId){
         return ResponseEntity.ok(mediaService.getAllMediaCommentedByUserId(userId));
+    }
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<ExceptionResponseContainerDTO> handleException(MethodArgumentNotValidException exception) {
+
+        String errorMsg = exception.getBindingResult().getFieldErrors().stream()
+                .map(DefaultMessageSourceResolvable::getDefaultMessage)
+                .findFirst()
+                .orElse(exception.getMessage());
+        ExceptionResponseContainerDTO exceptionResponse = new ExceptionResponseContainerDTO(new Date(), "Request Validation error",
+                errorMsg);
+
+        return new ResponseEntity<ExceptionResponseContainerDTO>(exceptionResponse, HttpStatus.BAD_REQUEST);
     }
 }
