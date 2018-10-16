@@ -192,7 +192,7 @@ public class MediaServiceImpl implements MediaService {
                 comments.setCommentedAt(new Date());
                 commentsRepository.save(comments);
                 media.setCommentsCount(media.getCommentsCount() + 1);
-                media = mediaRepository.save(media);
+                mediaRepository.save(media);
                 return new MediaResponseDTO().fromMediaAndLikedByME(media, likedByMe(userId, media.getId()));
             } else throw new UserNotFoundException(userId);
 
@@ -209,7 +209,7 @@ public class MediaServiceImpl implements MediaService {
             if (optionalUser.isPresent()) {
                 commentsRepository.deleteById(commentId);
                 media.setCommentsCount(media.getCommentsCount() - 1);
-                media = mediaRepository.save(media);
+                mediaRepository.save(media);
                 return new MediaResponseDTO().fromMediaAndLikedByME(media, likedByMe(userId, mediaId));
             } else throw new UserNotFoundException(userId);
 
@@ -257,7 +257,7 @@ public class MediaServiceImpl implements MediaService {
 
         Boolean likedByMe = false;
         if(optionalLikesList.isPresent()){
-            likedByMe = optionalLikesList.get().parallelStream().anyMatch((l)-> l.getMedia().getId().equals(Media.MEDIA_ID));
+            likedByMe = optionalLikesList.get().parallelStream().anyMatch((l)-> l.getMedia().getId().equals(mediaId));
         }
         return likedByMe;
     }

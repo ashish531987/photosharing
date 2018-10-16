@@ -118,6 +118,6 @@ public class MediaResource {
         ExceptionResponseContainerDTO exceptionResponse = new ExceptionResponseContainerDTO(new Date(), "Request Validation error",
                 errorMsg);
 
-        return new ResponseEntity<ExceptionResponseContainerDTO>(exceptionResponse, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(exceptionResponse, HttpStatus.BAD_REQUEST);
     }
 }

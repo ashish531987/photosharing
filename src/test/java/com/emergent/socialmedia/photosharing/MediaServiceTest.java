@@ -1,5 +1,6 @@
 package com.emergent.socialmedia.photosharing;
 
+import com.emergent.socialmedia.photosharing.domain.Comments;
 import com.emergent.socialmedia.photosharing.domain.Media;
 import com.emergent.socialmedia.photosharing.domain.User;
 import com.emergent.socialmedia.photosharing.repositories.CommentsRepository;
@@ -29,10 +30,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
@@ -90,7 +88,6 @@ public class MediaServiceTest {
         when(userRepository.findById(mockUser2.getId())).thenReturn(Optional.of(mockUser2));
         when(mediaRepository.findById(mockMedia1.getId())).thenReturn(Optional.of(mockMedia1));
         when(mediaRepository.findById(mockMedia2.getId())).thenReturn(Optional.of(mockMedia2));
-
         Resource resource = new FileSystemResource(mockMedia1.getFileName());
         when(storageService.loadAsResource(String.valueOf(mockMedia1.getId()))).thenReturn(resource);
 
@@ -174,5 +171,49 @@ public class MediaServiceTest {
                                 2);
         assertEquals(2,responseContainerDTO.getData().getChildren().size());
         assertEquals(mockMedia2.getId(), responseContainerDTO.getData().getAfter());
+    }
+
+    @Test
+    public void testSuccessfulComment(){
+        String testComment = "#MahLifeMahRulz B-)";
+
+        Comments mockComment = new Comments();
+        mockComment.setId(1L);
+        mockComment.setUser(mockUser1);
+        mockComment.setMedia(mockMedia1);
+        mockComment.setComment(testComment);
+
+        Pageable pageable = PageRequest.of(0, 100, new Sort(Sort.Direction.DESC, Comments.COMMENTED_AT));
+        when(commentsRepository.findAllByMediaId(mockMedia1.getId(), pageable)).thenReturn(Arrays.asList(mockComment));
+
+        long commentCount = mockMedia1.getCommentsCount();
+        MediaResponseDTO mediaResponseDTO = mediaService.comment(mockUser1.getId(), mockMedia1.getId(), testComment);
+        assertEquals(++commentCount, mediaResponseDTO.getCommentsCount());
+
+        ResponseContainerDTO responseContainerDTO = mediaService.getAllCommentsOrderByCreatedAtDesc(mockUser1.getId(), mockMedia1.getId(), null, null);
+        Comments resultComment = (Comments) responseContainerDTO.getData().getChildren().get(0);
+        assertEquals(testComment,resultComment.getComment());
+    }
+    @Test
+    public void testSuccessfulUncomment(){
+        String testComment = "#MahLifeMahRulz B-)";
+
+        Comments mockComment = new Comments();
+        mockComment.setId(1L);
+        mockComment.setUser(mockUser1);
+        mockComment.setMedia(mockMedia1);
+        mockComment.setComment(testComment);
+
+        List<Comments> commentsList = new ArrayList<>();
+
+        Pageable pageable = PageRequest.of(0, 100, new Sort(Sort.Direction.DESC, Comments.COMMENTED_AT));
+        when(commentsRepository.findAllByMediaId(mockMedia1.getId(), pageable)).thenReturn(commentsList);
+
+        long commentCount = mockMedia1.getCommentsCount();
+        MediaResponseDTO mediaResponseDTO = mediaService.uncomment(mockUser1.getId(), mockMedia1.getId(), mockComment.getId());
+        assertEquals(--commentCount, mediaResponseDTO.getCommentsCount());
+
+        ResponseContainerDTO responseContainerDTO = mediaService.getAllCommentsOrderByCreatedAtDesc(mockUser1.getId(), mockMedia1.getId(), null, null);
+        assertEquals(0,responseContainerDTO.getData().getChildren().size());
     }
 }
